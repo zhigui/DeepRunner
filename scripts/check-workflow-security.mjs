@@ -95,5 +95,8 @@ assert.equal(release.jobs.publish.steps.some(step => step.uses?.startsWith('acti
 assert.equal(release.jobs.publish.steps.some(step => /\byarn\b|\bnpm\b|\bnode\b/u.test(String(step.run ?? ''))), false, 'publish must not execute repository dependencies')
 const tokenSteps = release.jobs.publish.steps.filter(step => JSON.stringify(step.env ?? {}).includes('${{ github.token }}'))
 assert.deepEqual(tokenSteps.map(step => step.name), ['Create or update draft release', 'Verify published bytes and make release public'])
+for (const step of tokenSteps) {
+  assert.equal(step.env?.GH_REPO, '${{ github.repository }}', `${step.name} must select the repository without relying on a checkout`)
+}
 
 console.log(`verified security invariants for ${workflowFiles.length} workflows`)
