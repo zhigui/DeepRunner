@@ -1,11 +1,11 @@
-import { readFile, writeFile } from 'node:fs/promises'
+import { readFile, unlink, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { load, dump } from 'js-yaml'
 
 const directory = resolve(process.env.DEEPRUNNER_RELEASE_ARTIFACTS_DIR ?? resolve(import.meta.dirname, '..', 'release-artifacts'))
 const architectures = ['arm64', 'x64']
-const documents = await Promise.all(architectures.map(async architecture => {
-  const path = resolve(directory, `latest-mac-${architecture}.yml`)
+const inputPaths = architectures.map(architecture => resolve(directory, `latest-mac-${architecture}.yml`))
+const documents = await Promise.all(inputPaths.map(async path => {
   const value = load(await readFile(path, 'utf8'))
   if (value === null || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${path} is not an update metadata object`)
   if (!Array.isArray(value.files) || value.files.length === 0) throw new Error(`${path} has no update files`)
@@ -27,4 +27,5 @@ const output = {
   sha512: undefined,
 }
 await writeFile(resolve(directory, 'latest-mac.yml'), dump(output, { lineWidth: -1, noRefs: true }), 'utf8')
+await Promise.all(inputPaths.map(path => unlink(path)))
 console.log(`merged ${files.length} macOS update files for ${String(first.version)}`)

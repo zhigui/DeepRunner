@@ -5,18 +5,26 @@ on:
     tags: ['v*']
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   validate:
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out release source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          submodules: recursive
-      - uses: actions/setup-node@v4
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22.19.0
+          package-manager-cache: false
       - run: corepack enable
       - run: yarn install --immutable
       - run: node scripts/check-release-version.mjs
@@ -33,128 +41,215 @@ jobs:
           - runner: macos-15-intel
             arch: x64
     runs-on: ${{ matrix.runner }}
-    env:
-      DEEPRUNNER_APPLE_API_KEY_B64: ${{ secrets.DEEPRUNNER_APPLE_API_KEY_B64 }}
-      CSC_LINK: ${{ secrets.DEEPRUNNER_MAC_CERT_P12_B64 }}
-      CSC_KEY_PASSWORD: ${{ secrets.DEEPRUNNER_MAC_CERT_PASSWORD }}
-      APPLE_API_KEY: ${{ github.workspace }}/.release-secrets/AuthKey.p8
-      APPLE_API_KEY_ID: ${{ secrets.DEEPRUNNER_APPLE_API_KEY_ID }}
-      APPLE_API_ISSUER: ${{ secrets.DEEPRUNNER_APPLE_API_ISSUER }}
-      APPLE_TEAM_ID: ${{ secrets.DEEPRUNNER_APPLE_TEAM_ID }}
+    timeout-minutes: 45
+    environment: release
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out release source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          submodules: recursive
-      - uses: actions/setup-node@v4
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22.19.0
+          package-manager-cache: false
       - run: corepack enable
       - run: yarn install --immutable
-      - run: node scripts/prepare-apple-api-key.mjs
       - run: yarn build
-      - run: yarn workspace @deeprunner/desktop release:package --mac --${{ matrix.arch }}
+      - name: Package, sign, and notarize macOS app
+        shell: bash
+        env:
+          DEEPRUNNER_APPLE_API_KEY_B64: ${{ secrets.DEEPRUNNER_APPLE_API_KEY_B64 }}
+          CSC_LINK: ${{ secrets.DEEPRUNNER_MAC_CERT_P12_B64 }}
+          CSC_KEY_PASSWORD: ${{ secrets.DEEPRUNNER_MAC_CERT_PASSWORD }}
+          CSC_NAME: Developer ID Application
+          APPLE_API_KEY: ${{ runner.temp }}/deeprunner-release/AuthKey.p8
+          APPLE_API_KEY_ID: ${{ secrets.DEEPRUNNER_APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.DEEPRUNNER_APPLE_API_ISSUER }}
+          APPLE_TEAM_ID: ${{ secrets.DEEPRUNNER_APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+
+          cleanup_apple_key() {
+            rm -f -- "$APPLE_API_KEY"
+            rmdir "$(dirname "$APPLE_API_KEY")" 2>/dev/null || true
+          }
+          trap cleanup_apple_key EXIT
+
+          for required_name in DEEPRUNNER_APPLE_API_KEY_B64 CSC_LINK CSC_KEY_PASSWORD APPLE_API_KEY_ID APPLE_API_ISSUER APPLE_TEAM_ID; do
+            if [[ -z "${!required_name:-}" ]]; then
+              echo "::error::$required_name is required for a production macOS release"
+              exit 1
+            fi
+          done
+          if [[ ! "$APPLE_TEAM_ID" =~ ^[A-Z0-9]{10}$ ]]; then
+            echo "::error::APPLE_TEAM_ID must be a 10-character Apple Team ID"
+            exit 1
+          fi
+
+          node scripts/prepare-apple-api-key.mjs
+          yarn workspace @deeprunner/desktop release:package \
+            --mac \
+            --${{ matrix.arch }} \
+            --config.mac.forceCodeSigning=true
+
+          app_path=$(find apps/desktop/release -type d -name DeepRunner.app -print -quit)
+          test -n "$app_path"
+          actual_team_id=$(codesign -dvv "$app_path" 2>&1 | sed -n 's/^TeamIdentifier=//p')
+          if [[ "$actual_team_id" != "$APPLE_TEAM_ID" ]]; then
+            echo "::error::The signed app TeamIdentifier does not match APPLE_TEAM_ID"
+            exit 1
+          fi
       - name: Preserve architecture-specific update metadata
         shell: bash
-        run: mv apps/desktop/release/latest-mac.yml apps/desktop/release/latest-mac-${{ matrix.arch }}.yml
+        run: |
+          set -euo pipefail
+          mv apps/desktop/release/latest-mac.yml apps/desktop/release/latest-mac-${{ matrix.arch }}.yml
       - name: Verify Gatekeeper and notarization ticket
         shell: bash
         run: |
+          set -euo pipefail
           app_path=$(find apps/desktop/release -type d -name DeepRunner.app -print -quit)
           test -n "$app_path"
           codesign --verify --deep --strict --verbose=2 "$app_path"
+          if ! codesign -d --verbose=4 "$app_path" 2>&1 | grep -Eq 'flags=.*\(runtime\)'; then
+            echo "::error::The signed app does not have hardened runtime enabled"
+            exit 1
+          fi
           spctl --assess --type execute --verbose=2 "$app_path"
           xcrun stapler validate "$app_path"
-      - uses: actions/upload-artifact@v4
+      - name: Upload macOS release candidates
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-macos-${{ matrix.arch }}
           path: |
             apps/desktop/release/*.dmg
             apps/desktop/release/*.zip
-            apps/desktop/release/*.blockmap
+            apps/desktop/release/*.zip.blockmap
             apps/desktop/release/latest-mac-*.yml
           if-no-files-found: error
+          retention-days: 7
 
   windows:
     needs: validate
     runs-on: windows-2022
-    env:
-      CSC_LINK: ${{ secrets.DEEPRUNNER_WINDOWS_CERT_PFX_B64 }}
-      CSC_KEY_PASSWORD: ${{ secrets.DEEPRUNNER_WINDOWS_CERT_PASSWORD }}
+    timeout-minutes: 35
+    environment: release
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out release source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          submodules: recursive
-      - uses: actions/setup-node@v4
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22.19.0
+          package-manager-cache: false
       - run: corepack enable
       - run: yarn install --immutable
       - run: yarn build
-      - run: yarn workspace @deeprunner/desktop release:package --win --x64
-      - name: Verify Windows signing state
+      - name: Package Windows installer
         shell: pwsh
+        env:
+          CSC_LINK: ${{ secrets.DEEPRUNNER_WINDOWS_CERT_PFX_B64 }}
+          CSC_KEY_PASSWORD: ${{ secrets.DEEPRUNNER_WINDOWS_CERT_PASSWORD }}
         run: |
-          $installer = Get-ChildItem apps/desktop/release/*.exe | Select-Object -First 1
-          if ($null -eq $installer) { throw "Windows installer was not produced" }
-          $signature = Get-AuthenticodeSignature -LiteralPath $installer.FullName
-          $certificateConfigured = -not [string]::IsNullOrWhiteSpace($env:CSC_LINK)
-          if ($certificateConfigured -and $signature.Status -ne 'Valid') {
-            throw "A Windows signing certificate was configured, but Authenticode validation failed: $($signature.StatusMessage)"
+          $ErrorActionPreference = 'Stop'
+          $hasCertificate = -not [string]::IsNullOrWhiteSpace($env:CSC_LINK)
+          $hasPassword = -not [string]::IsNullOrWhiteSpace($env:CSC_KEY_PASSWORD)
+          if ($hasCertificate -ne $hasPassword) {
+            throw 'Configure both Windows signing secrets or neither of them'
           }
-          if (-not $certificateConfigured -and $signature.Status -eq 'NotSigned') {
-            Write-Warning "Publishing an unsigned Windows installer because DEEPRUNNER_WINDOWS_CERT_PFX_B64 is not configured"
-          } elseif ($signature.Status -ne 'Valid') {
-            throw "Unexpected Authenticode status: $($signature.Status) ($($signature.StatusMessage))"
+
+          if ($hasCertificate) {
+            yarn workspace @deeprunner/desktop release:package --win --x64 --config.win.forceCodeSigning=true
           } else {
+            Write-Warning 'Publishing an unsigned Windows installer because no Windows certificate is configured'
+            $env:CSC_IDENTITY_AUTO_DISCOVERY = 'false'
+            yarn workspace @deeprunner/desktop release:package --win --x64
+          }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $installer = Get-ChildItem apps/desktop/release/*.exe | Select-Object -First 1
+          if ($null -eq $installer) { throw 'Windows installer was not produced' }
+          $signature = Get-AuthenticodeSignature -LiteralPath $installer.FullName
+
+          if ($hasCertificate -and $signature.Status -ne 'Valid') {
+            throw "Windows Authenticode validation failed: $($signature.StatusMessage)"
+          }
+          if (-not $hasCertificate -and $signature.Status -ne 'NotSigned') {
+            throw "Expected an unsigned Windows installer, got: $($signature.Status)"
+          }
+          if ($hasCertificate) {
             Write-Host "Valid Authenticode signature: $($signature.SignerCertificate.Subject)"
           }
-      - uses: actions/upload-artifact@v4
+      - name: Upload Windows release candidates
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-windows-x64
           path: |
             apps/desktop/release/*.exe
-            apps/desktop/release/*.blockmap
+            apps/desktop/release/*.exe.blockmap
             apps/desktop/release/latest.yml
           if-no-files-found: error
+          retention-days: 7
 
   linux:
     needs: validate
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out release source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          submodules: recursive
-      - uses: actions/setup-node@v4
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22.19.0
+          package-manager-cache: false
       - run: corepack enable
       - run: yarn install --immutable
       - run: yarn build
       - run: yarn workspace @deeprunner/desktop release:package --linux --x64
       - run: dpkg-deb --info apps/desktop/release/*.deb
-      - uses: actions/upload-artifact@v4
+      - name: Upload Linux release candidates
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-linux-x64
           path: |
             apps/desktop/release/*.AppImage
             apps/desktop/release/*.deb
-            apps/desktop/release/*.blockmap
             apps/desktop/release/latest-linux.yml
           if-no-files-found: error
+          retention-days: 7
 
-  publish:
+  assemble:
     needs: [macos, windows, linux]
     runs-on: ubuntu-24.04
-    env:
-      GH_TOKEN: ${{ github.token }}
+    timeout-minutes: 20
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Check out release source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22.19.0
+          package-manager-cache: false
       - run: corepack enable
       - run: yarn install --immutable
-      - uses: actions/download-artifact@v4
+      - name: Download platform release candidates
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: release-*
           path: release-artifacts
@@ -162,21 +257,99 @@ jobs:
       - run: node scripts/merge-mac-update-metadata.mjs
       - run: node scripts/generate-sbom.mjs
       - run: node scripts/verify-update-metadata.mjs
-      - name: Create draft release
+      - run: node scripts/check-release-artifacts.mjs
+      - name: Generate release checksums
         shell: bash
         run: |
-          version=$(node -p "require('./package.json').version")
-          if gh release view "v$version" >/dev/null 2>&1; then
-            test "$(gh release view "v$version" --json isDraft --jq .isDraft)" = true
-            gh release upload "v$version" release-artifacts/* --clobber
+          set -euo pipefail
+          cd release-artifacts
+          sha256sum -- * > SHA256SUMS
+      - name: Upload verified release bundle
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: verified-release
+          path: release-artifacts/*
+          if-no-files-found: error
+          retention-days: 7
+
+  attest:
+    needs: assemble
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - name: Download verified release bundle
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: verified-release
+          path: release-ready
+      - name: Verify release checksums before attestation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd release-ready
+          sha256sum --check SHA256SUMS
+      - name: Attest release provenance
+        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
+        with:
+          subject-checksums: release-ready/SHA256SUMS
+
+  publish:
+    needs: attest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: release
+    permissions:
+      contents: write
+    steps:
+      - name: Download verified release bundle
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: verified-release
+          path: release-ready
+      - name: Verify staged release checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd release-ready
+          sha256sum --check SHA256SUMS
+      - name: Create or update draft release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="$GITHUB_REF_NAME"
+          version="${tag#v}"
+          shopt -s nullglob
+          assets=(release-ready/*)
+          ((${#assets[@]} > 0))
+          if gh release view "$tag" >/dev/null 2>&1; then
+            test "$(gh release view "$tag" --json isDraft --jq .isDraft)" = true
+            gh release upload "$tag" "${assets[@]}" --clobber
           else
-            gh release create "v$version" release-artifacts/* --draft --verify-tag --title "DeepRunner v$version" --generate-notes
+            gh release create "$tag" "${assets[@]}" --draft --verify-tag --title "DeepRunner v$version" --generate-notes
           fi
-      - name: Download published bytes and verify again
+      - name: Verify published bytes and make release public
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          version=$(node -p "require('./package.json').version")
+          set -euo pipefail
+          tag="$GITHUB_REF_NAME"
           mkdir downloaded-release
-          gh release download "v$version" --dir downloaded-release
-          DEEPRUNNER_RELEASE_ARTIFACTS_DIR="$PWD/downloaded-release" node scripts/verify-update-metadata.mjs
-          gh release edit "v$version" --draft=false --latest
+          gh release download "$tag" --dir downloaded-release
+
+          expected_list="$RUNNER_TEMP/expected-release-assets.txt"
+          actual_list="$RUNNER_TEMP/actual-release-assets.txt"
+          sed -n 's/^[0-9a-f]\{64\}  //p' downloaded-release/SHA256SUMS > "$expected_list"
+          printf '%s\n' SHA256SUMS >> "$expected_list"
+          sort -o "$expected_list" "$expected_list"
+          find downloaded-release -maxdepth 1 -type f -printf '%f\n' | sort > "$actual_list"
+          diff -u "$expected_list" "$actual_list"
+          (cd downloaded-release && sha256sum --check SHA256SUMS)
+
+          gh release edit "$tag" --draft=false --latest

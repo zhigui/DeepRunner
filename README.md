@@ -14,7 +14,7 @@ DeepRunner is a desktop client built on [DeepSeek Harness](https://github.com/de
 - **Manual source installation**: Accepts NPM package names, NPM package pages, and public GitHub repository root URLs. GitHub URLs are used only to discover and verify packages already published to NPM. Manual installations are always marked `Sideloaded · Unverified`.
 - **DeepRunner Terminal**: Opens `dsh` and `pnpm` in the system terminal with the current profile environment. This is not currently an embedded PTY.
 - **Desktop integration**: Provides application menus, a system tray, window hide and restore behavior, system/light/dark appearance modes, and `deeprunner://` plugin-market deep links.
-- **Application updates and releases**: Packaged builds use `electron-updater` to check for and download updates from a pinned GitHub Releases source. The release pipeline can produce macOS, Windows, and Linux artifacts, validate required signatures and metadata, and publish an explicitly warned unsigned Windows installer when no certificate is configured.
+- **Application updates and releases**: Packaged builds use `electron-updater` to check for and download updates from a pinned GitHub Releases source. The release pipeline requires macOS signing, supports optional Windows signing, validates metadata and checksums, and publishes only an allowlisted minimal asset set.
 
 DSH model configuration, workspaces, sessions, agent workflows, and tool capabilities come from the pinned official runtime and are not reimplemented by DeepRunner.
 

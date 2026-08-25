@@ -1,0 +1,11 @@
+# Release workflow and the code that defines signed/public artifacts.
+/.github/workflows/ @zhigui
+/.github/dependabot.yml @zhigui
+/apps/desktop/package.json @zhigui
+/package.json @zhigui
+/scripts/check-release-artifacts.mjs @zhigui
+/scripts/check-workflow-security.mjs @zhigui
+/scripts/generate-sbom.mjs @zhigui
+/scripts/merge-mac-update-metadata.mjs @zhigui
+/scripts/prepare-apple-api-key.mjs @zhigui
+/scripts/verify-update-metadata.mjs @zhigui

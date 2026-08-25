@@ -6750,6 +6750,7 @@ __metadata:
     "@types/react": "npm:18.3.24"
     electron: "npm:43.4.0"
     electron-builder: "npm:26.15.3"
+    js-yaml: "npm:4.1.0"
     tsdown: "npm:0.22.2"
     typescript: "npm:6.0.3"
     unrun: "npm:0.3.0"
@@ -7972,6 +7973,17 @@ __metadata:
   version: 4.0.0
   resolution: "js-tokens@npm:4.0.0"
   checksum: 10c0/e248708d377aa058eacf2037b07ded847790e6de892bbad3dac0abba2e759cb9f121b00099a65195616badcb6eca8d14d975cb3e89eb1cfda644756402c8aeed
+  languageName: node
+  linkType: hard
+
+"js-yaml@npm:4.1.0":
+  version: 4.1.0
+  resolution: "js-yaml@npm:4.1.0"
+  dependencies:
+    argparse: "npm:^2.0.1"
+  bin:
+    js-yaml: bin/js-yaml.js
+  checksum: 10c0/184a24b4eaacfce40ad9074c64fd42ac83cf74d8c8cd137718d456ced75051229e5061b8633c3366b8aada17945a7a356b337828c19da92b51ae62126575018f
   languageName: node
   linkType: hard
 

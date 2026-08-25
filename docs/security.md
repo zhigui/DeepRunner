@@ -91,10 +91,12 @@ flowchart TB
 
 - electron-updater 只使用打包时写入的公开 GitHub provider，Renderer 不能覆盖 feed 或下载路径。
 - electron-builder metadata 绑定版本、平台、架构、artifact size 和 SHA-512。
-- macOS Squirrel 更新要求 Developer ID 签名应用；Windows 已签名构建的 updater 校验 Authenticode publisher，当前未签名 Windows 构建仅依赖发布元数据中的 SHA-512 完整性校验。
+- macOS Squirrel 更新要求 Developer ID 签名应用。Windows 签名当前可选：没有配置证书时流水线明确生成并复验未签名安装器；配置证书后则要求 Authenticode 为 `Valid`，不会在签名失败时静默降级。
 - 下载由 updater 写入应用私有缓存，并支持差分下载。
 - 更新失败或用户取消不会删除当前安装；下载完成后只在用户重启或正常退出时安装。
-- 发布流水线在 draft 和回下载阶段复验 metadata 引用的实际 artifact。
+- Apple API key 只在单个签名 step 中解码到 runner 临时目录，使用独占创建和 `0600` 权限，并通过退出 trap 删除；P12/PFX、密码和 GitHub token 均不进入 job 级环境。
+- 构建 job 只有 `contents: read`；唯一拥有 `contents: write` 的发布 job 使用新 runner，不 checkout 仓库、不安装依赖，也不执行仓库脚本。
+- 发布流水线以固定白名单过滤 artifact，在 draft 和回下载阶段复验 metadata、SHA-512、SHA-256 和实际文件集合，并为发布文件生成 GitHub artifact attestation。
 
 ## 日志与隐私
 
