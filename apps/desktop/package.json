@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Electron launcher and native runtime for DeepRunner",
+  "desktopName": "DeepRunner.desktop",
   "license": "AGPL-3.0-or-later",
   "type": "module",
   "main": "lib/bin.js",
@@ -280,7 +281,7 @@
       }
     ],
     "mac": {
-      "icon": "build/DeepRunner.icon",
+      "icon": "build/icon.icns",
       "category": "public.app-category.developer-tools",
       "hardenedRuntime": true,
       "notarize": true,
@@ -305,6 +306,8 @@
     },
     "linux": {
       "icon": "build/icons",
+      "executableName": "deeprunner",
+      "syncDesktopName": true,
       "target": [
         "AppImage",
         "deb"
