@@ -1,7 +1,7 @@
 import { PassThrough } from 'node:stream'
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { delimiter, join, resolve } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
   SubprocessHandle,
@@ -132,7 +132,7 @@ describe('DeepRunner Package service', () => {
     ])
     expect(test.spec()?.cwd).toBe(invokingDir)
     const pathKey = Object.keys(process.env).find(key => key.toUpperCase() === 'PATH') ?? 'PATH'
-    expect(test.spec()?.env?.[pathKey]).toMatch(/^[/\\]runtime[/\\]bin/u)
+    expect(test.spec()?.env?.[pathKey]?.split(delimiter)[0]).toBe(resolve('/runtime/bin'))
     test.leader.resolve({ exitCode: 0, signal: null })
     test.tree.resolve(true)
     await handle.done
