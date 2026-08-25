@@ -20,7 +20,10 @@ function serviceFixture(): {
 } {
   const root = mkdtempSync(join(tmpdir(), 'deeprunner-package-e2e-'))
   const profileDir = join(root, 'home', 'profiles', 'm4test')
-  const fixtureDir = join(root, 'fixture source', 'm4-plugin')
+  // dsh 0.1.1-rc.2 invokes pnpm through cmd.exe on Windows, which cannot
+  // preserve a spaced local-package argument. Path anchoring is covered by
+  // package-service.spec.ts; keep this upstream integration fixture shell-safe.
+  const fixtureDir = join(root, 'fixture-source', 'm4-plugin')
   mkdirSync(profileDir, { recursive: true })
   cpSync(FIXTURE_DIR, fixtureDir, { recursive: true })
   const context = new Context()
@@ -129,7 +132,9 @@ describe('DeepRunner Package service integration', () => {
     const handle = service.runPnpm(['--dir', fixtureDir, 'run', 'hold-tree'])
     const childPid = await waitForChildPid(handle.stdout)
     await service.dispose()
-    await expect(handle.done).resolves.toMatchObject({ exitCode: null })
+    const outcome = await handle.done
+    // POSIX reports signal termination as null; taskkill reports a nonzero code.
+    expect(outcome.exitCode === null || outcome.exitCode !== 0).toBe(true)
     expect(await waitForProcessExit(childPid)).toBe(true)
   }, 30_000)
 })

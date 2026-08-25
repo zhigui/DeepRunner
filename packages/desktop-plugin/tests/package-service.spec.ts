@@ -103,12 +103,12 @@ describe('DeepRunner Package service', () => {
     expect(handle.stdout).toBe(test.stdout)
     expect(handle.stderr).toBe(test.stderr)
     expect(test.spec()).toMatchObject({
-      argv: ['/runtime/DeepRunner', '/runtime/pnpm.mjs', 'install', '--frozen-lockfile'],
-      cwd: '/tmp/deeprunner package test/home/profiles/team',
+      argv: [resolve('/runtime/DeepRunner'), resolve('/runtime/pnpm.mjs'), 'install', '--frozen-lockfile'],
+      cwd: resolve('/tmp/deeprunner package test/home/profiles/team'),
       graceMs: 25,
       stdio: { stdin: 'ignore', stdout: 'pipe', stderr: 'pipe' },
       env: {
-        DSH_HOME: '/tmp/deeprunner package test/home',
+        DSH_HOME: resolve('/tmp/deeprunner package test/home'),
         ELECTRON_RUN_AS_NODE: '1',
       },
     })
@@ -122,15 +122,15 @@ describe('DeepRunner Package service', () => {
     const invokingDir = resolve('/tmp/plugin source')
     const handle = test.service.runPlugin(['add', 'file:../fixture'], invokingDir)
     expect(test.spec()?.argv).toEqual([
-      '/runtime/DeepRunner',
-      '/runtime/dsh.js',
+      resolve('/runtime/DeepRunner'),
+      resolve('/runtime/dsh.js'),
       'plugin',
       '--profile',
       'team',
       'add',
       'file:../fixture',
     ])
-    expect(test.spec()?.cwd).toBe('/tmp/plugin source')
+    expect(test.spec()?.cwd).toBe(invokingDir)
     const pathKey = Object.keys(process.env).find(key => key.toUpperCase() === 'PATH') ?? 'PATH'
     expect(test.spec()?.env?.[pathKey]).toMatch(/^[/\\]runtime[/\\]bin/u)
     test.leader.resolve({ exitCode: 0, signal: null })
