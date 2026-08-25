@@ -31,7 +31,10 @@ describe('DeepRunner system Terminal', () => {
     const prepared = prepareDeepRunnerTerminal(runtime('darwin'))
     expect(prepared.launchCandidates).toEqual([])
     expect(prepared.entryPath).toMatch(/DeepRunner-Terminal\.command$/u)
-    expect(lstatSync(prepared.directory).mode & 0o777).toBe(0o700)
+    const directoryStat = lstatSync(prepared.directory)
+    expect(directoryStat.isDirectory()).toBe(true)
+    // Windows reports synthesized POSIX mode bits and cannot represent 0700.
+    if (process.platform !== 'win32') expect(directoryStat.mode & 0o777).toBe(0o700)
 
     const entry = readFileSync(prepared.entryPath, 'utf8')
     const dsh = readFileSync(join(prepared.directory, 'dsh'), 'utf8')

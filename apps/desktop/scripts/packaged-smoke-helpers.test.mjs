@@ -10,13 +10,13 @@ import {
 describe('packaged smoke helpers', () => {
   it('resolves all supported application layouts', () => {
     expect(resolvePackagedAppLayout('/dist/DeepRunner.app', 'darwin')).toMatchObject({
-      executablePath: join('/dist/DeepRunner.app', 'Contents', 'MacOS', 'DeepRunner'),
-      unpackedRoot: join('/dist/DeepRunner.app', 'Contents', 'Resources', 'app.asar.unpacked'),
+      executablePath: join(resolve('/dist/DeepRunner.app'), 'Contents', 'MacOS', 'DeepRunner'),
+      unpackedRoot: join(resolve('/dist/DeepRunner.app'), 'Contents', 'Resources', 'app.asar.unpacked'),
     })
     expect(resolvePackagedAppLayout('/dist/win-unpacked', 'win32').executablePath)
-      .toBe(join('/dist/win-unpacked', 'DeepRunner.exe'))
+      .toBe(join(resolve('/dist/win-unpacked'), 'DeepRunner.exe'))
     expect(resolvePackagedAppLayout('/dist/linux-unpacked', 'linux').executablePath)
-      .toBe(join('/dist/linux-unpacked', 'deeprunner'))
+      .toBe(join(resolve('/dist/linux-unpacked'), 'deeprunner'))
     expect(() => resolvePackagedAppLayout('/dist/app', 'freebsd')).toThrow(/does not support/u)
   })
 
