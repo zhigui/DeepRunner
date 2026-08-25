@@ -1,4 +1,4 @@
-name: Signed release
+name: Release
 
 on:
   push:
@@ -91,12 +91,23 @@ jobs:
       - run: yarn install --immutable
       - run: yarn build
       - run: yarn workspace @deeprunner/desktop release:package --win --x64
-      - name: Verify Authenticode
+      - name: Verify Windows signing state
         shell: pwsh
         run: |
           $installer = Get-ChildItem apps/desktop/release/*.exe | Select-Object -First 1
+          if ($null -eq $installer) { throw "Windows installer was not produced" }
           $signature = Get-AuthenticodeSignature -LiteralPath $installer.FullName
-          if ($signature.Status -ne 'Valid') { throw "Invalid Authenticode signature: $($signature.StatusMessage)" }
+          $certificateConfigured = -not [string]::IsNullOrWhiteSpace($env:CSC_LINK)
+          if ($certificateConfigured -and $signature.Status -ne 'Valid') {
+            throw "A Windows signing certificate was configured, but Authenticode validation failed: $($signature.StatusMessage)"
+          }
+          if (-not $certificateConfigured -and $signature.Status -eq 'NotSigned') {
+            Write-Warning "Publishing an unsigned Windows installer because DEEPRUNNER_WINDOWS_CERT_PFX_B64 is not configured"
+          } elseif ($signature.Status -ne 'Valid') {
+            throw "Unexpected Authenticode status: $($signature.Status) ($($signature.StatusMessage))"
+          } else {
+            Write-Host "Valid Authenticode signature: $($signature.SignerCertificate.Subject)"
+          }
       - uses: actions/upload-artifact@v4
         with:
           name: release-windows-x64

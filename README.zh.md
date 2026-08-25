@@ -14,7 +14,7 @@ DeepRunner 是基于 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-
 - **手动来源安装**：支持 NPM 包名、NPM 包页面和公开 GitHub 仓库根链接。GitHub 链接仅用于发现并核对已经发布到 NPM 的包；手动安装始终标记为 `Sideloaded · Unverified`。
 - **DeepRunner Terminal**：从系统终端打开带有当前 Profile 环境的 `dsh` 与 `pnpm`。目前不是应用内嵌 PTY。
 - **桌面集成**：提供应用菜单、系统托盘、窗口隐藏与恢复、系统/亮色/暗色主题，以及 `deeprunner://` 插件市场 Deep Link。
-- **应用更新与发布**：打包版本使用 `electron-updater` 从固定的 GitHub Releases 来源检查并下载更新；发布流水线可以生成 macOS、Windows 和 Linux 产物，并验证签名与元数据。
+- **应用更新与发布**：打包版本使用 `electron-updater` 从固定的 GitHub Releases 来源检查并下载更新；发布流水线可以生成 macOS、Windows 和 Linux 产物，验证必需签名与元数据，并允许在未配置证书时发布带明确警告的未签名 Windows 安装包。
 
 DSH 的模型配置、Workspace、会话、Agent 工作流和工具能力来自当前固定版本的官方运行时，不由 DeepRunner 重新实现。
 

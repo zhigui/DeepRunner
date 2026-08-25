@@ -91,7 +91,7 @@ flowchart TB
 
 - electron-updater 只使用打包时写入的公开 GitHub provider，Renderer 不能覆盖 feed 或下载路径。
 - electron-builder metadata 绑定版本、平台、架构、artifact size 和 SHA-512。
-- macOS Squirrel 更新要求 Developer ID 签名应用；Windows updater 校验 Authenticode publisher。
+- macOS Squirrel 更新要求 Developer ID 签名应用；Windows 已签名构建的 updater 校验 Authenticode publisher，当前未签名 Windows 构建仅依赖发布元数据中的 SHA-512 完整性校验。
 - 下载由 updater 写入应用私有缓存，并支持差分下载。
 - 更新失败或用户取消不会删除当前安装；下载完成后只在用户重启或正常退出时安装。
 - 发布流水线在 draft 和回下载阶段复验 metadata 引用的实际 artifact。

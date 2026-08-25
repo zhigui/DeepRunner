@@ -1,6 +1,6 @@
 # 更新与正式发布
 
-状态：M7 已实现；生产签名需要仓库所有者配置 Apple 与 Windows 证书
+状态：M7 已实现；macOS 生产发布需要仓库所有者配置 Apple 凭据，Windows 可先发布未签名安装包
 
 ## 应用内更新
 
@@ -10,7 +10,7 @@ DeepRunner 使用 `electron-updater` 和 electron-builder 生成的 GitHub provi
 
 1. 从最新公开 GitHub Release 读取当前平台的 `latest*.yml`。
 2. 发现新版本后由用户确认是否下载；应用窗口显示系统级下载进度。
-3. updater 根据元数据中的 size/SHA-512 校验下载结果，并在 Windows 校验 Authenticode publisher；macOS Squirrel 更新要求签名应用。
+3. updater 根据元数据中的 size/SHA-512 校验下载结果；已签名的 Windows 构建还会校验 Authenticode publisher，macOS Squirrel 更新要求签名应用。
 4. 下载完成后用户可选择“Restart and update”，也可等到正常退出时自动安装。
 5. macOS 使用 ZIP/Squirrel.Mac 替换应用；Windows 使用 per-user NSIS 静默更新；Linux 根据安装类型使用 AppImage 或 deb updater。
 
@@ -28,7 +28,7 @@ tag `v<package.version>` 触发 `.github/workflows/release.yml`：
 - 汇总 job 合并 macOS 双架构 metadata，并逐项复验 metadata 中的 size/SHA-512；
 - 全部 runner 先执行完整 check，`afterPack` 验证 runtime closure；
 - macOS 执行 Developer ID 签名、notarization/stapling 和 Gatekeeper 复验；
-- Windows 执行 Authenticode 签名和 PowerShell 复验；
+- Windows 在配置证书时执行 Authenticode 签名和 PowerShell 复验；未配置证书时明确记录警告并发布未签名安装包；
 - 先创建 draft release，再下载公开前的实际字节并复验，最后才标记为 latest。
 
 DMG 和 deb 保留给首次安装或人工恢复。macOS 后续更新实际使用 ZIP；Linux 包管理策略严格的发行版可继续通过 deb/软件仓库更新。
@@ -50,22 +50,22 @@ DMG 和 deb 保留给首次安装或人工恢复。macOS 后续更新实际使�
 在 GitHub 仓库中完成以下一次性设置：
 
 1. 打开 **Settings → Actions → General**，确认仓库允许运行 GitHub Actions。组织策略不能禁止本仓库 workflow。
-2. 打开 **Settings → Secrets and variables → Actions → Secrets → New repository secret**，逐个创建下表中的 8 个 repository secrets。参见 [GitHub：Using secrets in GitHub Actions](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets?tool=webui)。
+2. 打开 **Settings → Secrets and variables → Actions → Secrets → New repository secret**，创建下表中的 macOS 必需 secrets；Windows 两项可暂不配置。参见 [GitHub：Using secrets in GitHub Actions](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets?tool=webui)。
 3. 不要创建名为 `GH_TOKEN` 的 Secret。workflow 使用 `${{ github.token }}`，GitHub 会为每个 job 自动生成仓库范围 token；文件顶部的 `permissions: contents: write` 允许发布 job 创建和更新 Release。参见 [GitHub：GITHUB_TOKEN](https://docs.github.com/en/actions/concepts/security/github_token) 和 [workflow permissions](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#permissions)。
 4. 建议保护 `main` 和 `v*` tag，只允许受信任的维护者修改 release workflow 或推送发布 tag。能修改 workflow 并触发 tag 的人等价于能使用签名 Secrets。
 
-## 必需 GitHub Secrets
+## GitHub Secrets
 
-| Secret | 内容 |
-|---|---|
-| `DEEPRUNNER_MAC_CERT_P12_B64` | Developer ID Application P12 的 base64 |
-| `DEEPRUNNER_MAC_CERT_PASSWORD` | P12 密码 |
-| `DEEPRUNNER_APPLE_API_KEY_B64` | App Store Connect API `.p8` 的 base64 |
-| `DEEPRUNNER_APPLE_API_KEY_ID` | API key id |
-| `DEEPRUNNER_APPLE_API_ISSUER` | issuer UUID |
-| `DEEPRUNNER_APPLE_TEAM_ID` | Apple Developer Team ID |
-| `DEEPRUNNER_WINDOWS_CERT_PFX_B64` | Windows code-signing PFX 的 base64 |
-| `DEEPRUNNER_WINDOWS_CERT_PASSWORD` | PFX 密码 |
+| Secret | 内容 | 当前要求 |
+|---|---|---|
+| `DEEPRUNNER_MAC_CERT_P12_B64` | Developer ID Application P12 的 base64 | 必需 |
+| `DEEPRUNNER_MAC_CERT_PASSWORD` | P12 密码 | 必需 |
+| `DEEPRUNNER_APPLE_API_KEY_B64` | App Store Connect API `.p8` 的 base64 | 必需 |
+| `DEEPRUNNER_APPLE_API_KEY_ID` | API key id | 必需 |
+| `DEEPRUNNER_APPLE_API_ISSUER` | issuer UUID | 必需 |
+| `DEEPRUNNER_APPLE_TEAM_ID` | Apple Developer Team ID | 必需 |
+| `DEEPRUNNER_WINDOWS_CERT_PFX_B64` | Windows code-signing PFX 的 base64 | 可选 |
+| `DEEPRUNNER_WINDOWS_CERT_PASSWORD` | PFX 密码 | 配置 PFX 时必需 |
 
 
 ### macOS 证书与公证信息
@@ -80,7 +80,11 @@ workflow 会在 macOS runner 内临时把 `.p8` 还原为 `.release-secrets/Auth
 
 ### Windows 证书
 
-当前 workflow 采用可导出的文件证书：从受信任的代码签名 CA 获取 Windows Code Signing 证书，并导出带私钥、有密码的 `.pfx`/`.p12`。将其单行 base64 填入 `DEEPRUNNER_WINDOWS_CERT_PFX_B64`，导出密码填入 `DEEPRUNNER_WINDOWS_CERT_PASSWORD`。参见 [electron-builder：Code Signing for Windows](https://www.electron.build/docs/features/code-signing/code-signing-win/)。
+Windows 签名当前为可选。未设置 `DEEPRUNNER_WINDOWS_CERT_PFX_B64` 时，workflow 会生成未签名的 NSIS 安装包、输出醒目警告并继续发布。用户下载或运行时可能遇到浏览器、SmartScreen 和“未知发布者”警告，受组织策略管理的设备也可能禁止运行。
+
+配置证书后，workflow 采用可导出的文件证书：从受信任的代码签名 CA 获取 Windows Code Signing 证书，并导出带私钥、有密码的 `.pfx`/`.p12`。将其单行 base64 填入 `DEEPRUNNER_WINDOWS_CERT_PFX_B64`，导出密码填入 `DEEPRUNNER_WINDOWS_CERT_PASSWORD`。此时任何签名或 Authenticode 复验失败都会阻止发布。参见 [electron-builder：Code Signing for Windows](https://www.electron.build/docs/features/code-signing/code-signing-win/)。
+
+可以从未签名版本升级为签名版本；一旦发布过签名版本，就不要在后续版本移除证书，否则已经安装签名版本的客户端会拒绝未签名更新。
 
 如果购买的是硬件 USB Token/HSM 型 EV 证书，通常不能导出成 PFX，因此不能直接套用这组 Secrets；需要把 Windows job 改为对应 CA 的云签名、Azure Trusted Signing 或 HSM 方案。electron-builder 的普通证书和 EV 证书都支持自动更新，但签名方式不同。
 
@@ -108,9 +112,9 @@ openssl base64 -A -in WindowsCodeSigning.pfx | gh secret set DEEPRUNNER_WINDOWS_
 
 1. 将根 `package.json`、desktop 以及 workspace packages 的版本更新为相同 semver，完成 release notes。新版本必须高于已安装版本。
 2. 在 main 上确认三平台 CI 通过，并确认上游 pin/lockfile 未漂移。
-3. 确认 Apple 证书/API key 和 Windows 证书仍有效。
+3. 确认 Apple 证书/API key 仍有效；如果配置了 Windows 证书，也确认其仍有效。
 4. 创建并推送 annotated tag：`git tag -a v0.1.0 -m "DeepRunner v0.1.0" && git push origin v0.1.0`。
-5. 在 GitHub **Actions → Signed release** 观察执行。tag 必须严格等于 `v<package.version>`；任何矩阵、签名、公证或更新 metadata 复验失败都会阻止公开 release。
+5. 在 GitHub **Actions → Release** 观察执行。tag 必须严格等于 `v<package.version>`；任何必需签名、公证或更新 metadata 复验失败都会阻止公开 release，未配置 Windows 证书则按预期发布未签名安装包。
 6. workflow 会先创建 draft Release，上传并重新下载校验全部文件，成功后才公开并设为 latest。公开 Release 应至少包含平台安装包、macOS ZIP、对应 `.blockmap`，以及 `latest.yml`、`latest-mac.yml`、`latest-linux.yml`。
 7. 从旧版本在干净真实机器执行一次应用内更新，检查下载进度、重启安装、Deep Link、市场目录和正常退出安装。
 
@@ -122,4 +126,4 @@ openssl base64 -A -in WindowsCodeSigning.pfx | gh secret set DEEPRUNNER_WINDOWS_
 
 ## 本地验证
 
-无生产证书时可运行 `yarn check` 和目录打包。真正的 Squirrel.Mac、NSIS、Gatekeeper、notarization、Authenticode 与退出安装体验必须在持有密钥的目标平台、从旧版本升级到新版本验证。
+无生产证书时可运行 `yarn check` 和目录打包。真正的 Squirrel.Mac、NSIS、Gatekeeper、notarization 与退出安装体验必须在目标平台、从旧版本升级到新版本验证；配置 Windows 证书后还必须验证 Authenticode 和签名更新路径。
