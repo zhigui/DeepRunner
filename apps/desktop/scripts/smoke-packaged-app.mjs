@@ -51,7 +51,6 @@ export async function smokePackagedApp(layout, platform = process.platform) {
   const environment = cleanPackagedSmokeEnvironment(process.env, platform)
   environment[DEEPRUNNER_PACKAGED_SMOKE_ENV] = '1'
   environment.ELECTRON_ENABLE_LOGGING = '1'
-  environment.DSH_HOME = join(stateRoot, 'dsh-home')
   environment.HOME = stateRoot
   environment.USERPROFILE = stateRoot
   environment.XDG_CACHE_HOME = join(stateRoot, 'xdg-cache')

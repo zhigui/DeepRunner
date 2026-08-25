@@ -99,7 +99,7 @@ Renderer 始终：
 
 | 数据 | 建议位置 | 所有者 |
 | --- | --- | --- |
-| DSH settings、sessions、profiles | DSH Home | 上游 DSH |
+| DSH settings、sessions、profiles | Electron `userData/dsh-home` | 上游 DSH |
 | Profile manifest 与 lockfile | Profile 目录 | 上游 CLI/Profile |
 | 当前、pending、last-known-good | Electron `userData/profile-selection` | Launcher |
 | 更新状态与下载 | 平台 updater 的应用私有缓存 | Update service |
@@ -107,7 +107,7 @@ Renderer 始终：
 | 市场缓存 | 当前 Profile 的 `.deeprunner/market/catalog-v1.json` | Market Host plugin |
 | UI 临时状态 | Renderer memory 或上游 settings | 对应 Client plugin |
 
-DeepRunner 不把 DSH 核心数据复制到 Electron 私有数据库。
+DeepRunner 将 `DSH_HOME` 固定到产品私有的 Electron `userData/dsh-home`，不读取用户可能由其它 DSH 客户端共享的 `~/.dsh`，也不把 DSH 核心数据复制到另一套 Electron 私有数据库。
 
 ## 窗口模式
 

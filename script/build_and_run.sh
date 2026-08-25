@@ -6,6 +6,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_DIR="$ROOT_DIR/apps/desktop"
 ELECTRON_BIN="$ROOT_DIR/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron"
 STATE_DIR="$ROOT_DIR/.local/run"
+USER_DATA_DIR="$ROOT_DIR/.local/user-data"
 PID_FILE="$STATE_DIR/deeprunner.pid"
 
 case "$(uname -m)" in
@@ -41,7 +42,7 @@ stop_existing() {
 }
 
 launch_background() {
-  "$APP_BIN" &
+  "$APP_BIN" --user-data-dir="$USER_DATA_DIR" &
   APP_PID=$!
   printf '%s\n' "$APP_PID" >"$PID_FILE"
 }
@@ -69,8 +70,7 @@ if [[ ! -x "$APP_BIN" ]]; then
   exit 1
 fi
 
-mkdir -p "$STATE_DIR" "$ROOT_DIR/.local/dsh-home"
-export DSH_HOME="${DSH_HOME:-$ROOT_DIR/.local/dsh-home}"
+mkdir -p "$STATE_DIR" "$USER_DATA_DIR"
 export DEEPRUNNER_DEV="1"
 trap cleanup EXIT
 
@@ -80,7 +80,7 @@ case "$MODE" in
     wait "$APP_PID"
     ;;
   --debug|debug)
-    lldb -- "$APP_BIN"
+    lldb -- "$APP_BIN" --user-data-dir="$USER_DATA_DIR"
     ;;
   --logs|logs)
     export ELECTRON_ENABLE_LOGGING=1
@@ -100,7 +100,7 @@ case "$MODE" in
       fi
       sleep 0.1
     done
-    echo "DeepRunner: Electron process $APP_PID is running (DSH_HOME=$DSH_HOME)."
+    echo "DeepRunner: Electron process $APP_PID is running (DSH_HOME=$USER_DATA_DIR/dsh-home)."
     ;;
   *)
     echo "usage: $0 [run|--debug|--logs|--telemetry|--verify]" >&2

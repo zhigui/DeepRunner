@@ -66,7 +66,7 @@ corepack yarn smoke:packaged-app apps/desktop/release/mac-arm64/DeepRunner.app
 corepack yarn check
 ```
 
-`verify:packaged-runtime` 检查 archive/物理镜像和 exports；`smoke:packaged-runtime` 通过安装包内 Electron 的 Node 模式运行 DSH、pnpm，并加载 `node-pty`、`koffi`；`smoke:packaged-app` 使用隔离的 HOME、DSH_HOME、Chromium user-data 和净化后的 PATH 启动真实应用，直到桌面 Client 插件报告 Renderer 健康后自动退出。
+`verify:packaged-runtime` 检查 archive/物理镜像和 exports；`smoke:packaged-runtime` 通过安装包内 Electron 的 Node 模式运行 DSH、pnpm，并加载 `node-pty`、`koffi`；`smoke:packaged-app` 使用隔离的 HOME、Chromium user-data（其下包含产品私有的 `dsh-home`）和净化后的 PATH 启动真实应用，直到桌面 Client 插件报告 Renderer 健康后自动退出。
 
 `package:dir` 只生成无签名目录产物。上述三项已在 macOS arm64 通过，但不等同于三平台发布验证；macOS 公证、Windows NSIS、Linux 发行格式与对应平台 native ABI/真实 UI 仍必须在目标 OS runner 上执行。
 

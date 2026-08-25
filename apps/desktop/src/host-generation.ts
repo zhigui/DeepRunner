@@ -5,9 +5,9 @@ import {
   loadLayeredEnv,
 } from '@deepseek-ai/dsh-app-boot'
 import { provideCmdline } from '@deepseek-ai/dsh-cmdline'
-import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
 import { DSH_LAUNCH_ENVIRONMENT_KEY } from '@deepseek-ai/dsh-launch-environment'
 import type { DeepRunnerRuntime } from '@deeprunner/contracts/internal/runtime'
+import { bindDeepRunnerDshHome } from './dsh-home.js'
 import type { DeepRunnerGeneration } from './generation-coordinator.js'
 import {
   beginDeepRunnerProfileStartup,
@@ -35,8 +35,9 @@ export interface DeepRunnerHostRecoveryContext {
 
 /** Resolve the shared Profile recovery paths without starting a Host. */
 export function deepRunnerHostRecoveryContext(): DeepRunnerHostRecoveryContext {
-  const homeDir = resolveDshHome()
-  const paths = deepRunnerProfilePaths(app.getPath('userData'))
+  const userDataDir = app.getPath('userData')
+  const homeDir = bindDeepRunnerDshHome(userDataDir)
+  const paths = deepRunnerProfilePaths(userDataDir)
   return { homeDir, ...paths }
 }
 
@@ -51,8 +52,10 @@ export async function bootDeepRunnerHostGeneration(
   runtime: DeepRunnerRuntime,
   requestExit: (code: number) => void,
 ): Promise<DeepRunnerGeneration> {
-  const environment = loadLayeredEnv(BIN_NAME, process.cwd())
+  // Pin DSH_HOME before environment discovery: loadLayeredEnv reads the
+  // Harness-home .env and must never probe another client's ~/.dsh first.
   const { homeDir, statePath, safeModePath } = deepRunnerHostRecoveryContext()
+  const environment = loadLayeredEnv(BIN_NAME, process.cwd())
   const safeMode = consumeDeepRunnerSafeMode(safeModePath)
   const startup = beginDeepRunnerProfileStartup(statePath, homeDir)
   const prepared = prepareDeepRunnerProfile(homeDir, startup.profileName, {

@@ -43,7 +43,7 @@ corepack yarn build
 corepack yarn start
 ```
 
-在 macOS 上也可以使用开发脚本。它会重新构建应用、停止上一次由该脚本启动的实例，并使用仓库内隔离的 DSH Home：
+在 macOS 上也可以使用开发脚本。它会重新构建应用、停止上一次由该脚本启动的实例，并使用仓库内隔离的 Electron userData 目录（包括其中私有的 DSH Home）：
 
 ```bash
 corepack yarn dev

@@ -43,7 +43,7 @@ corepack yarn build
 corepack yarn start
 ```
 
-On macOS, you can also use the development script. It rebuilds the application, stops the previous instance started by the script, and uses an isolated in-repository DSH home:
+On macOS, you can also use the development script. It rebuilds the application, stops the previous instance started by the script, and uses an isolated in-repository Electron user-data directory (including its private DSH home):
 
 ```bash
 corepack yarn dev

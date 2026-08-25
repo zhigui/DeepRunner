@@ -20,7 +20,6 @@ import {
   writeProfileManifest,
   type Profile,
 } from '@deepseek-ai/dsh-app-boot'
-import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
 import { parseDeepRunnerProfileName, type DeepRunnerProfileName } from '@deeprunner/contracts'
 import type { DeepRunnerRuntimeIdentity } from '@deeprunner/contracts/internal/runtime'
 import {
@@ -198,7 +197,7 @@ export function ensureDeepRunnerProfile(
 
 /** Compose one immutable Web generation without editing upstream bundles. */
 export function prepareDeepRunnerProfile(
-  homeDir: string = resolveDshHome(),
+  homeDir: string,
   profileName: DeepRunnerProfileName = DEEPRUNNER_PROFILE_NAME,
   options: PrepareDeepRunnerProfileOptions = {},
 ): PreparedDeepRunnerProfile {

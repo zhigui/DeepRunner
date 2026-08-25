@@ -57,6 +57,7 @@ flowchart TB
 
 ## Profile 和文件系统
 
+- DeepRunner 将 `DSH_HOME` 固定到 Electron `userData/dsh-home`，不接受环境中的共享 `DSH_HOME` 或默认 `~/.dsh`。
 - Profile 名称使用严格格式白名单。
 - Launcher 只接受解析后的绝对目录。
 - 私有状态目录和原子写入拒绝符号链接目标。
