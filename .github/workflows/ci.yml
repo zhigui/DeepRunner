@@ -22,7 +22,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22.19.0
-          cache: yarn
       - run: corepack enable
       - run: yarn install --immutable
       - run: yarn check
