@@ -11,6 +11,7 @@ import {
 } from '../src/system-terminal.js'
 
 function runtime(platform: DeepRunnerTerminalRuntime['platform'], rootDir?: string): DeepRunnerTerminalRuntime {
+  const windows = platform === 'win32'
   return {
     rootDir: rootDir ?? mkdtempSync(join(tmpdir(), 'deeprunner-terminal-test-')),
     generationId: `generation-${platform}`,
@@ -18,11 +19,15 @@ function runtime(platform: DeepRunnerTerminalRuntime['platform'], rootDir?: stri
     version: '1.2.3',
     profile: {
       name: 'team profile',
-      dir: join('/tmp', 'DeepRunner Profile', 'home', 'profiles', 'team profile'),
+      dir: windows
+        ? 'C:\\DeepRunner Profile\\home\\profiles\\team profile'
+        : '/tmp/DeepRunner Profile/home/profiles/team profile',
     },
-    executablePath: join('/Applications', "DeepRunner's Test.app", 'DeepRunner'),
-    dshEntryPath: join('/runtime', 'DSH Files', 'bin.js'),
-    pnpmEntryPath: join('/runtime', 'pnpm Files', 'pnpm.mjs'),
+    executablePath: windows
+      ? "C:\\Program Files\\DeepRunner's Test\\DeepRunner.exe"
+      : "/Applications/DeepRunner's Test.app/DeepRunner",
+    dshEntryPath: windows ? 'C:\\runtime\\DSH Files\\bin.js' : '/runtime/DSH Files/bin.js',
+    pnpmEntryPath: windows ? 'C:\\runtime\\pnpm Files\\pnpm.mjs' : '/runtime/pnpm Files/pnpm.mjs',
   }
 }
 

@@ -1,4 +1,4 @@
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import {
   REQUIRED_ARCHIVE_ENTRIES,
@@ -10,7 +10,7 @@ import {
 
 function context(platform) {
   return {
-    appOutDir: '/build',
+    appOutDir: resolve('/build'),
     electronPlatformName: platform,
     packager: { appInfo: { productFilename: 'DeepRunner' } },
   }
@@ -24,8 +24,8 @@ describe('DeepRunner packaged runtime verification', () => {
 
   it('resolves platform-specific ASAR paths', () => {
     expect(resolvePackagedAsarPath(context('darwin')))
-      .toBe(join('/build', 'DeepRunner.app', 'Contents', 'Resources', 'app.asar'))
-    expect(resolvePackagedAsarPath(context('win32'))).toBe(join('/build', 'resources', 'app.asar'))
+      .toBe(join(resolve('/build'), 'DeepRunner.app', 'Contents', 'Resources', 'app.asar'))
+    expect(resolvePackagedAsarPath(context('win32'))).toBe(join(resolve('/build'), 'resources', 'app.asar'))
     expect(() => resolvePackagedAsarPath(context('mas'))).toThrow(/does not support/u)
   })
 
