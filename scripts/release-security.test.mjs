@@ -48,7 +48,10 @@ test('prepares only a valid P-256 Apple key with private permissions', async () 
 
     assert.equal(result.code, 0, result.stderr)
     assert.equal(await readFile(keyPath, 'utf8'), pem)
-    assert.equal((await lstat(keyPath)).mode & 0o777, 0o600)
+    const keyStat = await lstat(keyPath)
+    assert(keyStat.isFile())
+    // Windows reports synthesized POSIX mode bits and cannot represent 0600.
+    if (process.platform !== 'win32') assert.equal(keyStat.mode & 0o777, 0o600)
     assert(!result.stdout.includes(keyPath), 'temporary key path must not be logged')
     assert(!result.stdout.includes('PRIVATE KEY'), 'private key material must not be logged')
   })
