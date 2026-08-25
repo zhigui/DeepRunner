@@ -1,0 +1,33 @@
+# macOS metadata
+.DS_Store
+
+# IDE user settings
+.idea/
+.vscode/
+
+# Codex-generated local project configuration
+.codex/
+
+# Dependencies and Yarn machine-local state
+node_modules/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/install-state.gz
+.yarn/build-state.yml
+
+# Build and test output
+lib/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Desktop packaging and local runtime state
+apps/desktop/release/
+apps/desktop/.electron/
+.release-secrets/
+.local/
+
+# Logs and local environment overrides
+*.log
+.env
+.env.local

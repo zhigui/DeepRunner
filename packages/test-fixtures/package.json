@@ -1,0 +1,23 @@
+{
+  "name": "@deeprunner/test-fixtures",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Loader and profile fixtures that never enter production archives",
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@deeprunner/contracts": "workspace:*",
+    "@deepseek-ai/cordis": "4.0.1"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3",
+    "vitest": "4.1.8"
+  }
+}

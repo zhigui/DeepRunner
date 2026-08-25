@@ -1,0 +1,59 @@
+{
+  "name": "deeprunner",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A Cordis-native desktop distribution for DeepSeek Harness",
+  "license": "AGPL-3.0-or-later",
+  "packageManager": "yarn@4.18.0",
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "dependenciesMeta": {
+    "electron": {
+      "built": true
+    },
+    "koffi": {
+      "built": true
+    },
+    "node-pty": {
+      "built": true
+    }
+  },
+  "scripts": {
+    "build": "yarn workspaces foreach -At run build",
+    "typecheck": "yarn workspaces foreach -At run typecheck",
+    "test": "yarn workspaces foreach -At run test",
+    "electron:install": "install-electron",
+    "dev": "./script/build_and_run.sh",
+    "package:dir": "yarn build && node apps/desktop/scripts/package-dir.mjs",
+    "verify:packaged-runtime": "node apps/desktop/scripts/verify-packaged-runtime.mjs",
+    "smoke:packaged-runtime": "node apps/desktop/scripts/smoke-packaged-runtime.mjs",
+    "smoke:packaged-app": "node apps/desktop/scripts/smoke-packaged-app.mjs",
+    "release:package": "yarn build && yarn workspace @deeprunner/desktop release:package",
+    "release:verify": "node scripts/verify-update-metadata.mjs",
+    "start": "yarn workspace @deeprunner/desktop start",
+    "check:layout": "node scripts/check-layout.mjs",
+    "check:docs": "node scripts/check-doc-links.mjs",
+    "test:updater": "node --test scripts/update-dsh.test.mjs",
+    "check": "yarn check:layout && yarn check:docs && yarn test:updater && yarn build && yarn typecheck && yarn test",
+    "upstream:update": "node scripts/update-dsh.mjs",
+    "upstream:version": "cd upstream/deepseek-harness && corepack pnpm --version",
+    "upstream:install": "cd upstream/deepseek-harness && corepack pnpm install --frozen-lockfile",
+    "upstream:build": "cd upstream/deepseek-harness && corepack pnpm run build"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "4.0.9",
+    "@types/node": "22.20.0",
+    "@types/react": "18.3.24",
+    "electron": "43.4.0",
+    "electron-builder": "26.15.3",
+    "tsdown": "0.22.2",
+    "typescript": "6.0.3",
+    "unrun": "0.3.0",
+    "vitest": "4.1.8"
+  }
+}

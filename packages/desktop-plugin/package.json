@@ -1,0 +1,79 @@
+{
+  "name": "@deeprunner/desktop-plugin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DeepRunner Host and Client Cordis faces",
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "types": "./lib/client/index.d.ts",
+      "default": "./lib/client.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "cordis.patch.yml",
+    "lib/**",
+    "package.json"
+  ],
+  "dsh": {
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-theme"
+      ],
+      "platform": "web"
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsdown --config tsdown.config.ts && tsc -p tsconfig.client.json --emitDeclarationOnly",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.client.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@deeprunner/contracts": "workspace:*",
+    "@deeprunner/plugin-market": "workspace:*",
+    "@deepseek-ai/cordis": "4.0.1",
+    "@deepseek-ai/cordis-plugin-loader": "1.0.2",
+    "@deepseek-ai/dsh": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-api-remotes": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-client-connection": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-client-locale": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-client-runtime": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-client-ui-layout": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-client-ui-primitives": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-client-ui-settings": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-client-ui-slots": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-client-ui-theme": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-cmdline": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-cordis-host-runner": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-host-plugin-inventory": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-host-webserver": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-invariants": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-subprocess": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-typert-protocol": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-typert-registry": "0.1.1-rc.2",
+    "pnpm": "11.7.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "yaml": "2.9.0"
+  },
+  "devDependencies": {
+    "@deepseek-ai/dsh-subprocess-local": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-timeout": "0.1.1-rc.2",
+    "tsdown": "0.22.2",
+    "typescript": "6.0.3",
+    "vitest": "4.1.8"
+  }
+}

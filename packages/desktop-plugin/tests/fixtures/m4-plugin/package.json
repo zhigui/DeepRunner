@@ -1,0 +1,14 @@
+{
+  "name": "deeprunner-m4-plugin-fixture",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "hold-tree": "node hold-tree.js"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

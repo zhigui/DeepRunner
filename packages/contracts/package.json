@@ -1,0 +1,42 @@
+{
+  "name": "@deeprunner/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Stable public and internal contracts for DeepRunner",
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./host": {
+      "types": "./lib/host.d.ts",
+      "default": "./lib/host.js"
+    },
+    "./internal/runtime": {
+      "types": "./lib/internal/runtime.d.ts",
+      "default": "./lib/internal/runtime.js"
+    }
+  },
+  "files": [
+    "lib/**"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@deepseek-ai/cordis": "4.0.1"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "4.0.1"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3",
+    "vitest": "4.1.8"
+  }
+}

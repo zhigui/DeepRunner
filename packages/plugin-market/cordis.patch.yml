@@ -1,0 +1,5 @@
+# Launcher-owned M5 market layer. It composes after the Web bundle and waits
+# for the desktop shell's Profile and package services through Cordis inject.
+- insert:
+    - id: deeprunner-plugin-market
+      name: "@deeprunner/plugin-market"

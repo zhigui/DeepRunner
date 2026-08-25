@@ -1,0 +1,16 @@
+# DeepRunner composes after the official Web bundle. The launcher will apply
+# the final loopback and presentation-mode overlay for each generation.
+- insert:
+    - id: deeprunner-shell
+      name: "@deeprunner/desktop-plugin"
+      config:
+        mode: native
+
+# A graphical launcher consumes the server directly and does not need the CLI
+# readiness line. Surface context keeps the ordinary Web Client carrier.
+- id: web-runtime
+  config:
+    openBrowser: false
+    printUrl: false
+    surfaceContext: true
+    trustedHosts: []
