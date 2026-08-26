@@ -10,6 +10,7 @@ import {
   deepRunnerBundleList,
   ensureDeepRunnerProfile,
   importDeepRunnerModuleFrom,
+  installDeepRunnerLoaderImportFallback,
   prepareDeepRunnerProfile,
 } from '../src/profile.js'
 
@@ -41,6 +42,35 @@ describe('DeepRunner profile composition', () => {
       pathToFileURL(anchorPath).href,
     ) as { default: string }
     expect(loaded.default).toBe('profile bundle')
+  })
+
+  it('keeps the fallback capable of resolving packages installed under a Profile', async () => {
+    const profileDir = mkdtempSync(join(tmpdir(), 'deeprunner-profile-hot-import-'))
+    const packageDir = join(profileDir, 'node_modules', 'fixture-hot-plugin')
+    const hotDir = join(profileDir, '.deeprunner-market-hot')
+    mkdirSync(packageDir, { recursive: true })
+    mkdirSync(hotDir, { recursive: true })
+    writeFileSync(join(packageDir, 'package.json'), JSON.stringify({
+      name: 'fixture-hot-plugin',
+      type: 'module',
+      exports: './index.js',
+    }))
+    writeFileSync(join(packageDir, 'index.js'), 'export default "hot profile plugin"\n', 'utf8')
+    const loader = { internal: undefined } as never
+    const dispose = installDeepRunnerLoaderImportFallback(loader)
+    const internal = (loader as { internal?: {
+      import(specifier: string, parentUrl: string, options: object): Promise<unknown>
+    } }).internal
+
+    const loaded = await internal?.import(
+      'fixture-hot-plugin',
+      pathToFileURL(join(hotDir, 'hot-1.yml')).href,
+      {},
+    ) as { default: string }
+    expect(loaded.default).toBe('hot profile plugin')
+
+    dispose()
+    expect((loader as { internal?: unknown }).internal).toBeUndefined()
   })
 
   it('safe mode bypasses a broken Profile manifest and user patches', () => {

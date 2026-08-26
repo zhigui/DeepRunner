@@ -10,6 +10,7 @@ import type { DeepRunnerRuntimeIdentity } from '@deeprunner/contracts/internal/r
 import type { DeepRunnerMarketEntry } from './contract.js'
 import type {
   DeepRunnerMarketOperationKind,
+  DeepRunnerMarketOperationActivation,
   DeepRunnerMarketOperationPreview,
   DeepRunnerMarketOperationState,
   DeepRunnerMarketOperationView,
@@ -52,6 +53,7 @@ interface MutableOperation {
   stderr: string
   exitCode?: number | null
   error?: string
+  activation?: DeepRunnerMarketOperationActivation
   handle: DeepRunnerProcessHandle | undefined
   cancelRequested: boolean
 }
@@ -63,6 +65,10 @@ export interface DeepRunnerMarketOperationServiceOptions {
   readonly now?: () => Date
   readonly id?: () => string
   readonly runtime?: DeepRunnerRuntimeIdentity
+  readonly activate?: (
+    kind: DeepRunnerMarketOperationKind,
+    packageName: string,
+  ) => Promise<DeepRunnerMarketOperationActivation>
 }
 
 function appendBounded(current: string, chunk: unknown): string {
@@ -82,6 +88,7 @@ function publicView(operation: MutableOperation): DeepRunnerMarketOperationView 
     stderr: operation.stderr,
     ...(operation.exitCode === undefined ? {} : { exitCode: operation.exitCode }),
     ...(operation.error === undefined ? {} : { error: operation.error }),
+    ...(operation.activation === undefined ? {} : { activation: operation.activation }),
   }
 }
 
@@ -93,6 +100,7 @@ export class DeepRunnerMarketOperationService {
   private readonly now: () => Date
   private readonly id: () => string
   private readonly runtime: DeepRunnerRuntimeIdentity
+  private readonly activate: NonNullable<DeepRunnerMarketOperationServiceOptions['activate']>
   private readonly operations = new Map<string, MutableOperation>()
   private readonly previews = new Map<string, PreviewRecord>()
   private activeId: string | undefined
@@ -104,6 +112,10 @@ export class DeepRunnerMarketOperationService {
     this.now = options.now ?? (() => new Date())
     this.id = options.id ?? randomUUID
     this.runtime = structuredClone(options.runtime ?? defaultDeepRunnerRuntimeIdentity())
+    this.activate = options.activate ?? (async () => ({
+      status: 'restart-required',
+      reason: 'Live activation is unavailable in this host',
+    }))
   }
 
   start(pluginId: string, kind: DeepRunnerMarketOperationKind): DeepRunnerMarketOperationView {
@@ -300,6 +312,7 @@ export class DeepRunnerMarketOperationService {
           operation.kind === 'disable',
         )
         operation.exitCode = 0
+        operation.activation = await this.applyActivation(operation.kind, entry.packageName)
         operation.state = 'succeeded'
         return
       }
@@ -335,6 +348,7 @@ export class DeepRunnerMarketOperationService {
           )
           saveDeepRunnerMarketReceipt(this.profiles.current.dir, receipt)
         }
+        operation.activation = await this.applyActivation(operation.kind, entry.packageName)
         operation.state = 'succeeded'
       } else {
         operation.state = 'failed'
@@ -379,6 +393,20 @@ export class DeepRunnerMarketOperationService {
     }
     if (actual !== expected) throw new Error('Plugin artifact integrity does not match the market catalog')
     this.packages.allowBuildScripts(entry.release.buildScriptPackages ?? [])
+  }
+
+  private async applyActivation(
+    kind: DeepRunnerMarketOperationKind,
+    packageName: string,
+  ): Promise<DeepRunnerMarketOperationActivation> {
+    try {
+      return await this.activate(kind, packageName)
+    } catch (cause) {
+      return {
+        status: 'restart-required',
+        reason: `Live activation failed: ${cause instanceof Error ? cause.message : String(cause)}`,
+      }
+    }
   }
 
   private async consume(

@@ -125,6 +125,31 @@ afterEach(() => {
 })
 
 describe('MarketStore install flow', () => {
+  it('does not request a restart when the server applied the plugin live', async () => {
+    const completed: DeepRunnerMarketOperationView = {
+      ...marketRunning,
+      state: 'succeeded',
+      finishedAt: '2026-08-23T00:00:01.000Z',
+      exitCode: 0,
+      activation: { status: 'live' },
+    }
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(json(operationPreview))
+      .mockResolvedValueOnce(json(completed, 202))
+      .mockResolvedValueOnce(json(emptyCatalog))
+    const store = new MarketStore()
+
+    await store.start('install', marketEntry)
+    await Promise.resolve()
+
+    expect(store.snapshot()).toMatchObject({
+      restartRequired: false,
+      restartRequirements: {},
+      restartPromptOpen: false,
+      operation: { activation: { status: 'live' } },
+    })
+  })
+
   it('starts installation without a confirmation and preserves a deferred restart', async () => {
     const completed: DeepRunnerMarketOperationView = {
       ...marketRunning,
@@ -153,6 +178,7 @@ describe('MarketStore install flow', () => {
     await Promise.resolve()
     expect(store.snapshot()).toMatchObject({
       restartRequired: true,
+      restartRequirements: { fixture: 'Restart DeepRunner to apply this plugin change.' },
       restartPromptOpen: true,
       operation: { state: 'succeeded' },
     })

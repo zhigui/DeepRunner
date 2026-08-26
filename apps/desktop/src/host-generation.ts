@@ -95,7 +95,6 @@ export async function bootDeepRunnerHostGeneration(
       },
       prepared.bareModuleBaseUrl,
     )
-    disposeLoaderImportFallback()
     await runtime.mountScheduled()
     const rendererBoot = await runtime.waitForRendererBoot()
     if (rendererBoot.status === 'failed') {
@@ -112,9 +111,19 @@ export async function bootDeepRunnerHostGeneration(
 
   const activeContext = context
   if (activeContext === undefined) {
+    profiles.dispose()
+    disposeLoaderImportFallback()
     throw new Error('DeepRunner Host generation disposed during startup')
   }
   return {
-    dispose: async () => { await activeContext.fiber.dispose() },
+    dispose: async () => {
+      try {
+        await activeContext.fiber.dispose()
+      } finally {
+        // Dynamic Loader trees (including Market hot mounts) still resolve
+        // bare package names from the active Profile after initial boot.
+        disposeLoaderImportFallback()
+      }
+    },
   }
 }

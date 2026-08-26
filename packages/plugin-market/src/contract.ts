@@ -11,6 +11,7 @@ export type DeepRunnerMarketTrustLevel = 'builtin' | 'verified-publisher' | 'com
 export type DeepRunnerMarketEntryStatus = 'listed' | 'paused' | 'deprecated'
 export type DeepRunnerMarketOperationKind = 'install' | 'update' | 'switch' | 'remove' | 'enable' | 'disable'
 export type DeepRunnerMarketOperationState = 'running' | 'succeeded' | 'failed' | 'cancelled'
+export type DeepRunnerMarketRuntimeStatus = 'live' | 'restart-required'
 export type DeepRunnerMarketCatalogSourceKind = 'remote' | 'cache' | 'embedded'
 export type DeepRunnerMarketActivationStatus = 'not-installed' | 'active' | 'unverified' | 'disabled' | 'quarantined'
 
@@ -107,6 +108,12 @@ export interface DeepRunnerMarketOperationView {
   readonly stderr: string
   readonly exitCode?: number | null
   readonly error?: string
+  readonly activation?: DeepRunnerMarketOperationActivation
+}
+
+export interface DeepRunnerMarketOperationActivation {
+  readonly status: DeepRunnerMarketRuntimeStatus
+  readonly reason?: string
 }
 
 export interface DeepRunnerMarketOperationRequest {

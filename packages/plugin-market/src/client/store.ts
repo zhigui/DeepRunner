@@ -33,6 +33,7 @@ export interface MarketState {
     readonly preview?: DeepRunnerMarketOperationPreview | undefined
   } | undefined
   readonly restartRequired: boolean
+  readonly restartRequirements: Readonly<Record<string, string>>
   readonly restartPromptOpen: boolean
   readonly restarting: boolean
   readonly detailsOpen: boolean
@@ -72,6 +73,7 @@ export class MarketStore {
     tab: 'discover',
     filter: 'all',
     restartRequired: false,
+    restartRequirements: {},
     restartPromptOpen: false,
     restarting: false,
     detailsOpen: true,
@@ -255,7 +257,7 @@ export class MarketStore {
       .then((value) => {
         this.patch({ operation: value })
         if (value.state === 'succeeded') {
-          this.patch({ restartRequired: true, restartPromptOpen: true })
+          this.applyActivation(value)
           void this.loadCatalog()
         }
       })
@@ -315,7 +317,7 @@ export class MarketStore {
       .then((value) => {
         this.patch({ selectedId: pluginId, pending: undefined, operation: value })
         if (value.state === 'succeeded') {
-          this.patch({ restartRequired: true, restartPromptOpen: true })
+          this.applyActivation(value)
           void this.loadCatalog()
         }
       })
@@ -334,6 +336,23 @@ export class MarketStore {
 
   deferRestart(): void {
     this.patch({ restartPromptOpen: false })
+  }
+
+  private applyActivation(operation: DeepRunnerMarketOperationView): void {
+    const restartRequirements = { ...this.state.restartRequirements }
+    if (operation.activation?.status === 'live') {
+      delete restartRequirements[operation.pluginId]
+      const restartRequired = Object.keys(restartRequirements).length > 0
+      this.patch({
+        restartRequirements,
+        restartRequired,
+        ...(!restartRequired ? { restartPromptOpen: false } : {}),
+      })
+      return
+    }
+    restartRequirements[operation.pluginId] = operation.activation?.reason
+      ?? 'Restart DeepRunner to apply this plugin change.'
+    this.patch({ restartRequirements, restartRequired: true, restartPromptOpen: true })
   }
 
   cancelOperation(): Promise<void> {

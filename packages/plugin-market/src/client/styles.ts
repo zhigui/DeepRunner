@@ -95,7 +95,14 @@ body[data-deeprunner-market-open="true"] [role="treeitem"][aria-selected="true"]
 .deeprunner-market-action.restart { flex: none; min-height: 30px; padding: 0 12px; }
 .deeprunner-market-loading-ring { width: 12px; height: 12px; flex: none; box-sizing: border-box; border: 1.5px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: deeprunner-market-spin .72s linear infinite; }
 @keyframes deeprunner-market-spin { to { transform: rotate(360deg); } }
-.deeprunner-market-restart-callout { margin-top: 12px; padding: 10px 11px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid rgba(22,134,83,.18); border-radius: 9px; color: var(--drm-success); background: var(--drm-success-soft); font-size: 11px; line-height: 1.45; }
+.deeprunner-market-restart-callout { min-width: 0; max-width: 100%; margin-top: 12px; padding: 11px 12px; box-sizing: border-box; display: flex; flex-direction: column; align-items: stretch; gap: 8px; overflow: hidden; border: 1px solid rgba(22,134,83,.18); border-radius: 9px; color: var(--drm-success); background: var(--drm-success-soft); font-size: 11px; line-height: 1.45; }
+.deeprunner-market-restart-copy { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.deeprunner-market-restart-copy strong { font-size: 12px; }
+.deeprunner-market-restart-copy span { color: var(--dsw-alias-label-secondary, inherit); overflow-wrap: anywhere; }
+.deeprunner-market-restart-reason, .deeprunner-market-dialog-reason { min-width: 0; color: var(--dsw-alias-label-secondary, inherit); }
+.deeprunner-market-restart-reason summary, .deeprunner-market-dialog-reason summary { width: fit-content; cursor: pointer; color: var(--drm-success); font-weight: 600; font-size: 12px; margin-top: 5px; }
+.deeprunner-market-restart-reason p, .deeprunner-market-dialog-reason p { max-height: 96px; margin: 6px 0 0; overflow: auto; overflow-wrap: anywhere; word-break: break-word; white-space: normal; }
+.deeprunner-market-restart-callout .deeprunner-market-action.restart { align-self: flex-start; margin-top: 1px; }
 .deeprunner-market-description { margin: 18px 0; font-size: 13px; line-height: 1.68; color: var(--dsw-alias-label-secondary, inherit); }
 .deeprunner-market-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin: 20px 0; padding: 4px 0; border-top: 1px solid var(--drm-border); border-bottom: 1px solid var(--drm-border); }
 .deeprunner-market-meta div { min-width: 0; padding: 12px 10px; }
@@ -125,7 +132,7 @@ body[data-deeprunner-market-open="true"] [role="treeitem"][aria-selected="true"]
 .deeprunner-market-dialog h2 { margin: 5px 0 9px; font-size: 18px; line-height: 1.3; letter-spacing: -.015em; }
 .deeprunner-market-dialog p { margin: 0; color: var(--dsw-alias-label-secondary, inherit); font-size: 12px; line-height: 1.55; overflow-wrap: anywhere; }
 .deeprunner-market-dialog-eyebrow { color: var(--drm-accent); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-.deeprunner-market-dialog-success { color: var(--drm-success); font-size: 11px; font-weight: 650; }
+.deeprunner-market-dialog-success { color: var(--drm-success); font-size: 12px; font-weight: 650; }
 .deeprunner-market-dialog-warning { margin-top: 14px; padding: 10px; border-radius: 8px; color: var(--drm-warning); background: var(--drm-warning-soft); font-size: 11px; line-height: 1.5; }
 .deeprunner-market-dialog-actions { margin-top: 20px; display: flex; justify-content: flex-end; gap: 9px; }
 .deeprunner-market-manual-dialog { width: min(520px, 100%); }

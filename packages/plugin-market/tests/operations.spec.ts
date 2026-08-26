@@ -123,6 +123,10 @@ function operationFixture(
   status: 'listed' | 'paused' = 'listed',
   integrity?: string,
   installed = false,
+  activate?: (kind: 'install' | 'update' | 'switch' | 'remove' | 'enable' | 'disable', packageName: string) => Promise<{
+    readonly status: 'live' | 'restart-required'
+    readonly reason?: string
+  }>,
 ) {
   const dir = mkdtempSync(join(tmpdir(), 'deeprunner-market-operation-'))
   const packageDir = join(dir, 'node_modules', 'fixture-plugin')
@@ -149,6 +153,7 @@ function operationFixture(
     profiles,
     id: () => 'operation-1',
     now: () => new Date('2026-08-22T01:02:03.000Z'),
+    activate,
   })
   return { operations, process, dir }
 }
@@ -175,6 +180,22 @@ describe('DeepRunner market operations', () => {
       state: 'succeeded',
       stdout: 'installed',
       exitCode: 0,
+    })
+  })
+
+  it('reports a successful live activation without turning it into a package failure', async () => {
+    const calls: string[] = []
+    const { operations, process } = operationFixture('listed', undefined, false, async (kind, packageName) => {
+      calls.push(`${kind}:${packageName}`)
+      return { status: 'live' }
+    })
+    operations.start('fixture', 'install')
+    await new Promise<void>(resolve => { setImmediate(resolve) })
+    process.settle({ exitCode: 0, signal: null })
+    await new Promise<void>(resolve => { setImmediate(resolve) })
+    expect(calls).toEqual(['install:fixture-plugin'])
+    expect(operations.get('operation-1')).toMatchObject({
+      state: 'succeeded', activation: { status: 'live' },
     })
   })
 

@@ -331,9 +331,12 @@ function detailBody(state: MarketState, selected?: DeepRunnerMarketCatalogEntryV
                     || (selected.trustLevel === 'sideloaded' && state.manualDetail?.entry.id !== selected.id),
                   onClick: () => { selected.trustLevel === 'sideloaded'
                     ? marketStore.retryManualSource() : void marketStore.start('install') },
-                }, selected.trustLevel === 'sideloaded'
-                  ? 'Inspect source again'
-                  : detailActionContent(state, selected.id, 'install', 'Install'))
+                }, detailActionContent(
+                  state,
+                  selected.id,
+                  'install',
+                  selected.trustLevel === 'sideloaded' ? 'Inspect source again' : 'Install',
+                ))
                 : h(React.Fragment, null,
                   hasUpdate(selected)
                     ? h('button', {
@@ -379,9 +382,14 @@ function detailBody(state: MarketState, selected?: DeepRunnerMarketCatalogEntryV
               rel: 'noreferrer',
             }, 'View source')),
           operationOutput(state, selected.id),
-          state.restartRequired
+          state.restartRequirements[selected.id] !== undefined
             ? h('div', { className: 'deeprunner-market-restart-callout', role: 'status' },
-              h('span', null, 'Restart DeepRunner to apply the latest plugin changes.'),
+              h('div', { className: 'deeprunner-market-restart-copy' },
+                h('strong', null, 'Restart required'),
+                h('span', null, 'The plugin change is saved and will take effect after DeepRunner restarts.')),
+              h('details', { className: 'deeprunner-market-restart-reason' },
+                h('summary', null, 'Why is a restart needed?'),
+                h('p', null, state.restartRequirements[selected.id])),
               h('button', {
                 type: 'button',
                 className: 'deeprunner-market-action restart',
@@ -561,9 +569,14 @@ function marketDialog(state: MarketState): React.ReactElement | null {
       'aria-modal': 'true',
       'aria-labelledby': 'deeprunner-market-restart-title',
     },
-    h('div', { className: 'deeprunner-market-dialog-success' }, 'Plugin change completed'),
     h('h2', { id: 'deeprunner-market-restart-title' }, 'Restart DeepRunner?'),
-    h('p', null, 'Restart now to load the latest plugin changes. You can also restart later without losing your installation.'),
+    h('p', null, 'The plugin change is saved. Restart now to apply it, or restart later without losing the installation.'),
+    state.operation === undefined
+      || state.restartRequirements[state.operation.pluginId] === undefined
+      ? null
+      : h('details', { className: 'deeprunner-market-dialog-reason' },
+        h('summary', null, 'Why is a restart needed?'),
+        h('p', null, state.restartRequirements[state.operation.pluginId])),
     h('div', { className: 'deeprunner-market-dialog-actions' },
       h('button', {
         type: 'button',

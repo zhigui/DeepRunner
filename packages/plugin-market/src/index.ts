@@ -11,6 +11,7 @@ import {
   DeepRunnerRemoteCatalogController,
 } from './remote-catalog.js'
 import { handleDeepRunnerMarketRequest } from './transport.js'
+import { DeepRunnerMarketHotActivationService } from './hot-activation.js'
 
 export {
   BUILTIN_MARKET_CATALOG,
@@ -36,6 +37,7 @@ export type {
 } from './compatibility.js'
 export { DeepRunnerMarketOperationService } from './operations.js'
 export { DeepRunnerManualInstallService } from './manual-install.js'
+export { DeepRunnerMarketHotActivationService, parseDeepRunnerHotPatch } from './hot-activation.js'
 export {
   DEEPRUNNER_MARKET_CATALOG_URL,
   DeepRunnerRemoteCatalogController,
@@ -56,12 +58,14 @@ export function apply(ctx: Context): void {
   const runtime = ctx.deepRunnerRuntime
   const catalog = new DeepRunnerMarketCatalogService({ profiles, runtime: runtime.identity })
   const remoteCatalog = new DeepRunnerRemoteCatalogController({ catalog, profiles })
+  const activation = new DeepRunnerMarketHotActivationService(ctx, profiles.current.dir)
   const catalogReady = remoteCatalog.start()
   const operations = new DeepRunnerMarketOperationService({
     catalog,
     packages,
     profiles,
     runtime: runtime.identity,
+    activate: (kind, packageName) => activation.apply(kind, packageName),
   })
   const manual = new DeepRunnerManualInstallService({
     operations,
@@ -85,5 +89,6 @@ export function apply(ctx: Context): void {
     'DeepRunner Market API',
   )
   ctx.effect(() => () => { remoteCatalog.dispose() }, 'DeepRunner Market remote catalog')
+  ctx.effect(() => () => activation.dispose(), 'DeepRunner Market hot activation')
   ctx.logger.info(`DeepRunner market active for profile ${profiles.current.name}`)
 }
